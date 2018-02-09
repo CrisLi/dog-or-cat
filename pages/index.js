@@ -1,27 +1,29 @@
-import { compose, withState, withHandlers } from 'recompose';
+import { compose, withState, withHandlers, lifecycle } from 'recompose';
+import io from 'socket.io-client';
+import fetch from 'isomorphic-unfetch';
 import Greeting from 'components/Greeting';
 import Vote from 'components/Vote';
 
-const withWholeVotes = compose(
-  withState('dogs', 'voteDog', 0),
-  withState('cats', 'voteCat', 0),
-  withHandlers({
-    vote: ({ voteDog, voteCat }) => (to) => {
-      switch (to) {
-        case 'dogs':
-          voteDog((current) => current + 1);
-          break;
-        case 'cats':
-          voteCat((current) => current + 1);
-          break;
-        default:
-          break;
-      }
+const withVotes = compose(
+  withState('votes', 'setVotes', ({ votes }) => votes),
+  lifecycle({
+    componentDidMount() {
+      const socket = io();
+      socket.on('votes', this.props.setVotes);
+      this.setState({
+        socket
+      });
+    },
+    componentWillUnmount() {
+      this.props.socket.close();
     }
+  }),
+  withHandlers({
+    vote: ({ socket }) => (to) => socket.emit('vote', to)
   })
 );
 
-const Index = ({ dogs, cats, vote }) => (
+const HomePage = ({ votes, vote }) => (
   <div className="container">
     <div className="main">
       <div className="d-flex justify-content-center">
@@ -29,10 +31,10 @@ const Index = ({ dogs, cats, vote }) => (
       </div>
       <div className="row">
         <div className="col-sm d-flex justify-content-center">
-          <Vote count={dogs} message="I like Dog" name="dogs" vote={vote} />
+          <Vote count={votes.dogs} message="I like Dog" name="dogs" vote={vote} />
         </div>
         <div className="col-sm d-flex justify-content-center">
-          <Vote count={cats} message="I like Cat" name="cats" vote={vote} />
+          <Vote count={votes.cats} message="I like Cat" name="cats" vote={vote} />
         </div>
       </div>
     </div>
@@ -45,4 +47,12 @@ const Index = ({ dogs, cats, vote }) => (
   </div>
 );
 
-export default withWholeVotes(Index);
+const HomeWithVotes = withVotes(HomePage);
+
+HomeWithVotes.getInitialProps = async () => {
+  const response = await fetch('http://localhost:3000/votes');
+  const votes = await response.json();
+  return { votes };
+};
+
+export default HomeWithVotes;
