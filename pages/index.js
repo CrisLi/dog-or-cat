@@ -1,10 +1,18 @@
-import { compose, withState, withHandlers, lifecycle } from 'recompose';
+import { compose, withState, withHandlers, lifecycle, setStatic } from 'recompose';
 import io from 'socket.io-client';
 import fetch from 'isomorphic-unfetch';
 import Greeting from 'components/Greeting';
 import Vote from 'components/Vote';
 
 const withVotes = compose(
+  setStatic(
+    'getInitialProps',
+    async () => {
+      const response = await fetch('http://localhost:3000/votes');
+      const votes = await response.json();
+      return { votes };
+    }
+  ),
   withState('votes', 'setVotes', ({ votes }) => votes),
   lifecycle({
     componentDidMount() {
@@ -53,12 +61,4 @@ const HomePage = ({ votes, vote }) => (
   </div>
 );
 
-const HomeWithVotes = withVotes(HomePage);
-
-HomeWithVotes.getInitialProps = async () => {
-  const response = await fetch('http://localhost:3000/votes');
-  const votes = await response.json();
-  return { votes };
-};
-
-export default HomeWithVotes;
+export default withVotes(HomePage);
