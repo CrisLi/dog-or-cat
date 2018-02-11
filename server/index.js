@@ -13,7 +13,7 @@ io.on('connection', (socket) => {
   socket.on('vote', (data) => {
     console.log(`Vote to ${data}`);
     const votes = voteService.vote(data);
-    io.emit('votes', votes);
+    socket.broadcast.emit('votes', votes);
   });
 });
 

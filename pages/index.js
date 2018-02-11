@@ -19,7 +19,13 @@ const withVotes = compose(
     }
   }),
   withHandlers({
-    vote: ({ socket }) => (to) => socket.emit('vote', to)
+    vote: ({ socket, setVotes }) => (to) => {
+      socket.emit('vote', to);
+      setVotes((votes) => ({
+        ...votes,
+        [to]: votes[to] + 1
+      }));
+    }
   })
 );
 
